@@ -382,6 +382,15 @@ typedef struct
       u64 pad[1];
       u64 pg_replay_timestamp;
     };
+    //@linxchen
+    struct
+    {
+      u32 hop_id;
+      u32 queue_size;
+      u64 ingress_timestamp;
+      u64 egress_timestamp;
+      u32 latency;
+    } int_metadata;
     u32 unused[10];
   };
 } vnet_buffer_opaque2_t;
