@@ -43,11 +43,18 @@
 #include <vnet/ip/ip6.h>
 #include <vnet/udp/udp_packet.h>
 #include <vnet/feature/feature.h>
+//#include <vnet/ethernet/ethernet.h>  //@linxchen for: format_mac_address
 
 typedef struct
 {
   u32 sw_if_index;
   u8 data[128 - sizeof (u32)];
+  
+/*  u64 timestamp;   //@linxchen
+  u64 egr_timestamp;
+  u32 queue;
+  u32 delay;
+  u8 switch_id[6];*/
 }
 interface_output_trace_t;
 
@@ -86,6 +93,18 @@ format_vnet_interface_output_trace (u8 * s, va_list * va)
 		      node->format_buffer ? node->
 		      format_buffer : format_hex_bytes, t->data,
 		      sizeof (t->data));
+	  //@linxchen
+/*  	  s = format (s, "\n  ingress_time %lu",
+	      	  t->timestamp);
+  	  s = format (s, "  egress_time %lu",
+	      	  t->egr_timestamp);
+  	  s = format (s, "  queue %d",
+	      	  t->queue);
+  	  s = format (s, "  switch mac %U",
+	      format_mac_address, t->switch_id);
+  	  s = format (s, "  delay %d",
+	      t->delay);
+*/
 	}
     }
   return s;
@@ -123,6 +142,13 @@ vnet_interface_output_trace (vlib_main_t * vm,
 	  t0->sw_if_index = vnet_buffer (b0)->sw_if_index[VLIB_TX];
 	  clib_memcpy_fast (t0->data, vlib_buffer_get_current (b0),
 			    sizeof (t0->data));
+	  //@linxchen
+/*	  t0->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
+	  t0->egr_timestamp = vnet_buffer2 (b0)->int_metadata.egress_timestamp;
+	  t0->queue = vnet_buffer2 (b0)->int_metadata.queue_size;
+	  t0->delay = vnet_buffer2 (b0)->int_metadata.latency;
+	  clib_memcpy_fast (t0->switch_id, vnet_buffer2 (b0)->int_metadata.switch_addr,
+				    sizeof (t0->switch_id));*/
 	}
       if (b1->flags & VLIB_BUFFER_IS_TRACED)
 	{
@@ -130,6 +156,13 @@ vnet_interface_output_trace (vlib_main_t * vm,
 	  t1->sw_if_index = vnet_buffer (b1)->sw_if_index[VLIB_TX];
 	  clib_memcpy_fast (t1->data, vlib_buffer_get_current (b1),
 			    sizeof (t1->data));
+	  //@linxchen
+/*	  t1->timestamp = vnet_buffer2 (b1)->int_metadata.ingress_timestamp;
+	  t1->egr_timestamp = vnet_buffer2 (b1)->int_metadata.egress_timestamp;
+	  t1->queue = vnet_buffer2 (b1)->int_metadata.queue_size;
+	  t1->delay = vnet_buffer2 (b1)->int_metadata.latency;
+	  clib_memcpy_fast (t1->switch_id, vnet_buffer2 (b1)->int_metadata.switch_addr,
+				    sizeof (t1->switch_id));*/
 	}
       from += 2;
       n_left -= 2;
@@ -151,6 +184,13 @@ vnet_interface_output_trace (vlib_main_t * vm,
 	  t0->sw_if_index = vnet_buffer (b0)->sw_if_index[VLIB_TX];
 	  clib_memcpy_fast (t0->data, vlib_buffer_get_current (b0),
 			    sizeof (t0->data));
+	  //@linxchen
+/*	  t0->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
+	  t0->egr_timestamp = vnet_buffer2 (b0)->int_metadata.egress_timestamp;
+	  t0->queue = vnet_buffer2 (b0)->int_metadata.queue_size;
+	  t0->delay = vnet_buffer2 (b0)->int_metadata.latency;
+	  clib_memcpy_fast (t0->switch_id, vnet_buffer2 (b0)->int_metadata.switch_addr,
+				    sizeof (t0->switch_id));*/
 	}
       from += 1;
       n_left -= 1;
@@ -463,6 +503,109 @@ vnet_interface_output_node (vlib_main_t * vm, vlib_node_runtime_t * node,
 VLIB_NODE_FUNCTION_MULTIARCH_CLONE (vnet_interface_output_node);
 CLIB_MULTIARCH_SELECT_FN (vnet_interface_output_node);
 
+//@linxchen ---- start
+#define vlib_set_next_frame_for_int_queue(vm,node,next_index,b,v)			\
+({									\
+  uword _n_left;							\
+  vlib_get_next_frame ((vm), (node), (next_index), (v), _n_left);	\
+  ASSERT (_n_left > 0);							\
+  vnet_buffer2 (b)->int_metadata.queue_size = VLIB_FRAME_SIZE - _n_left;			\
+  vnet_buffer2 (b)->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);	\
+  vnet_buffer2 (b)->int_metadata.latency = vnet_buffer2 (b)->int_metadata.egress_timestamp - vnet_buffer2 (b)->int_metadata.ingress_timestamp;	\
+  vlib_put_next_frame ((vm), (node), (next_index), _n_left - 1);	\
+  (v);									\
+})
+
+always_inline void
+vlib_set_next_frame_buffer_for_int_queue (vlib_main_t * vm,
+			    vlib_node_runtime_t * node,
+			    u32 next_index, u32 buffer_index, vlib_buffer_t *b)
+{
+  u32 *p;
+  p = vlib_set_next_frame_for_int_queue (vm, node, next_index, b, p);
+  p[0] = buffer_index;
+}
+
+#define vlib_validate_buffer_enqueue_x2_for_int_queue(vm,node,next_index,to_next,n_left_to_next,bi0,bi1,next0,next1,b0,b1) \
+do {									\
+  int enqueue_code = (next0 != next_index) + 2*(next1 != next_index);	\
+									\
+  if (PREDICT_FALSE (enqueue_code != 0))				\
+    {									\
+      switch (enqueue_code)						\
+	{								\
+	case 1:								\
+	  /* A B A */							\
+	  to_next[-2] = bi1;						\
+	  to_next -= 1;							\
+	  n_left_to_next += 1;						\
+	  vlib_set_next_frame_buffer_for_int_queue (vm, node, next0, bi0, b0);		\
+	  vnet_buffer2 (b1)->int_metadata.queue_size = VLIB_FRAME_SIZE - n_left_to_next - 1;			\
+	  vnet_buffer2 (b1)->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);	\
+	  vnet_buffer2 (b1)->int_metadata.latency = vnet_buffer2 (b1)->int_metadata.egress_timestamp - vnet_buffer2 (b1)->int_metadata.ingress_timestamp;	\
+	  break;							\
+									\
+	case 2:								\
+	  /* A A B */							\
+	  to_next -= 1;							\
+	  n_left_to_next += 1;						\
+	  vlib_set_next_frame_buffer_for_int_queue (vm, node, next1, bi1, b1);		\
+	  vnet_buffer2 (b0)->int_metadata.queue_size = VLIB_FRAME_SIZE - n_left_to_next - 1;			\
+	  vnet_buffer2 (b0)->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);	\
+	  vnet_buffer2 (b0)->int_metadata.latency = vnet_buffer2 (b0)->int_metadata.egress_timestamp - vnet_buffer2 (b0)->int_metadata.ingress_timestamp;	\
+	  break;							\
+									\
+	case 3:								\
+	  /* A B B or A B C */						\
+	  to_next -= 2;							\
+	  n_left_to_next += 2;						\
+	  vlib_set_next_frame_buffer_for_int_queue (vm, node, next0, bi0, b0);		\
+	  vlib_set_next_frame_buffer_for_int_queue (vm, node, next1, bi1, b1);		\
+	  if (next0 == next1)						\
+	    {								\
+	      vlib_put_next_frame (vm, node, next_index,		\
+				   n_left_to_next);			\
+	      next_index = next1;					\
+	      vlib_get_next_frame (vm, node, next_index, to_next, n_left_to_next); \
+	    }								\
+	}								\
+    }									\
+  else									\
+  	{									\
+    	vnet_buffer2 (b0)->int_metadata.queue_size = VLIB_FRAME_SIZE - n_left_to_next - 2;			\
+		vnet_buffer2 (b0)->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);	\
+		vnet_buffer2 (b0)->int_metadata.latency = vnet_buffer2 (b0)->int_metadata.egress_timestamp - vnet_buffer2 (b0)->int_metadata.ingress_timestamp;	\
+								\
+		vnet_buffer2 (b1)->int_metadata.queue_size = VLIB_FRAME_SIZE - n_left_to_next - 1;			\
+		vnet_buffer2 (b1)->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);	\
+		vnet_buffer2 (b1)->int_metadata.latency = vnet_buffer2 (b1)->int_metadata.egress_timestamp - vnet_buffer2 (b1)->int_metadata.ingress_timestamp;	\
+    }								\
+} while (0)
+
+#define vlib_validate_buffer_enqueue_x1_for_int_queue(vm,node,next_index,to_next,n_left_to_next,bi0,next0,b0) \
+do {									\
+  if (PREDICT_FALSE (next0 != next_index))				\
+    {									\
+      vlib_put_next_frame (vm, node, next_index, n_left_to_next + 1);	\
+      next_index = next0;						\
+      vlib_get_next_frame (vm, node, next_index, to_next, n_left_to_next); \
+									\
+	  vnet_buffer2 (b0)->int_metadata.queue_size = VLIB_FRAME_SIZE - n_left_to_next;			\
+  	  vnet_buffer2 (b0)->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);	\
+  	  vnet_buffer2 (b0)->int_metadata.latency = vnet_buffer2 (b0)->int_metadata.egress_timestamp - vnet_buffer2 (b0)->int_metadata.ingress_timestamp;	\
+      to_next[0] = bi0;							\
+      to_next += 1;							\
+      n_left_to_next -= 1;						\
+    }									\
+  else									\
+  	{									\
+    	vnet_buffer2 (b0)->int_metadata.queue_size = VLIB_FRAME_SIZE - n_left_to_next - 1;			\
+		vnet_buffer2 (b0)->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);	\
+		vnet_buffer2 (b0)->int_metadata.latency = vnet_buffer2 (b0)->int_metadata.egress_timestamp - vnet_buffer2 (b0)->int_metadata.ingress_timestamp;	\
+    }								\
+} while (0)
+//@linxchen ---- end
+
 /* Use buffer's sw_if_index[VNET_TX] to choose output interface. */
 static uword
 vnet_per_buffer_interface_output (vlib_main_t * vm,
@@ -519,6 +662,10 @@ vnet_per_buffer_interface_output (vlib_main_t * vm,
 	  vlib_validate_buffer_enqueue_x2 (vm, node, next_index, to_next,
 					   n_left_to_next, bi0, bi1, next0,
 					   next1);
+	  //@linxchen
+	  /*vlib_validate_buffer_enqueue_x2_for_int_queue (vm, node, next_index, to_next,
+					   n_left_to_next, bi0, bi1, next0,
+					   next1, b0, b1);*/
 	}
 
       while (n_left_from > 0 && n_left_to_next > 0)
@@ -545,6 +692,9 @@ vnet_per_buffer_interface_output (vlib_main_t * vm,
 
 	  vlib_validate_buffer_enqueue_x1 (vm, node, next_index, to_next,
 					   n_left_to_next, bi0, next0);
+	  //@linxchen
+	  /*vlib_validate_buffer_enqueue_x1_for_int_queue (vm, node, next_index, to_next,
+					   n_left_to_next, bi0, next0, b0);*/
 	}
 
       vlib_put_next_frame (vm, node, next_index, n_left_to_next);

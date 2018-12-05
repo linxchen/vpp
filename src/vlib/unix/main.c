@@ -635,7 +635,9 @@ vlib_unix_main (int argc, char *argv[])
   int i;
 
   vm->argv = (u8 **) argv;
+  
   vm->name = argv[0];
+  
   vm->heap_base = clib_mem_get_heap ();
   vm->heap_aligned_base = (void *)
     (((uword) vm->heap_base) & ~(VLIB_FRAME_ALIGN - 1));

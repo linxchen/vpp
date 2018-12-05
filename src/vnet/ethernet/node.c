@@ -701,6 +701,15 @@ ethernet_input_trace (vlib_main_t * vm, vlib_node_runtime_t * node,
     }
 }
 
+//@linxchen
+#define foreach_mac_address_offset              \
+_(0)                                            \
+_(1)                                            \
+_(2)                                            \
+_(3)                                            \
+_(4)                                            \
+_(5)
+
 static_always_inline void
 ethernet_input_inline (vlib_main_t * vm,
 		       vlib_node_runtime_t * node,
@@ -777,11 +786,24 @@ ethernet_input_inline (vlib_main_t * vm,
 	  b0 = vlib_get_buffer (vm, bi0);
 	  b1 = vlib_get_buffer (vm, bi1);
 
+    //@linxchen
+    vnet_buffer2 (b0)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
+    vnet_buffer2 (b1)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
+
 	  error0 = error1 = ETHERNET_ERROR_NONE;
 	  e0 = vlib_buffer_get_current (b0);
 	  type0 = clib_net_to_host_u16 (e0->type);
 	  e1 = vlib_buffer_get_current (b1);
 	  type1 = clib_net_to_host_u16 (e1->type);
+
+    //@linxchen
+#define _(a) vnet_buffer2 (b0)->int_metadata.switch_addr[a] = e0->dst_address[a];
+    foreach_mac_address_offset;
+#undef _
+
+#define _(a) vnet_buffer2 (b1)->int_metadata.switch_addr[a] = e1->dst_address[a];
+    foreach_mac_address_offset;
+#undef _
 
 	  /* Set the L2 header offset for all packets */
 	  vnet_buffer (b0)->l2_hdr_offset = b0->current_data;
@@ -1017,9 +1039,17 @@ ethernet_input_inline (vlib_main_t * vm,
 
 	  b0 = vlib_get_buffer (vm, bi0);
 
+    //@linxchen
+    vnet_buffer2 (b0)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
+
 	  error0 = ETHERNET_ERROR_NONE;
 	  e0 = vlib_buffer_get_current (b0);
 	  type0 = clib_net_to_host_u16 (e0->type);
+
+    //@linxchen
+#define _(a) vnet_buffer2 (b0)->int_metadata.switch_addr[a] = e0->dst_address[a];
+    foreach_mac_address_offset;
+#undef _
 
 	  /* Set the L2 header offset for all packets */
 	  vnet_buffer (b0)->l2_hdr_offset = b0->current_data;

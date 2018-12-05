@@ -385,11 +385,11 @@ typedef struct
     //@linxchen
     struct
     {
-      u32 hop_id;
       u32 queue_size;
       u64 ingress_timestamp;
       u64 egress_timestamp;
       u32 latency;
+      u8 switch_addr[6];   //use mac address
     } int_metadata;
     u32 unused[10];
   };

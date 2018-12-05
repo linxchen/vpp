@@ -26,6 +26,7 @@ typedef struct
   u8 new_src_mac[6];
   u8 new_dst_mac[6];
   u64 timestamp;   //@linxchen
+  u32 queue;
 } sample_trace_t;
 
 
@@ -39,12 +40,14 @@ format_sample_trace (u8 * s, va_list * args)
 
   s = format (s, "SAMPLE: sw_if_index %d, next index %d\n",
 	      t->sw_if_index, t->next_index);
-  s = format (s, "  new src %U -> new dst %U",
+  s = format (s, "  new src %U -> new dst %U\n",
 	      format_mac_address, t->new_src_mac,
 	      format_mac_address, t->new_dst_mac);
   //@linxchen
   s = format (s, "  my_timestamp %lu",
 	      t->timestamp);
+  s = format (s, "  my_que %d",
+	      t->queue);
   return s;
 }
 
@@ -180,6 +183,10 @@ VLIB_NODE_FN (sample_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
 	  vnet_buffer (b0)->sw_if_index[VLIB_TX] = sw_if_index0;
 	  vnet_buffer (b1)->sw_if_index[VLIB_TX] = sw_if_index1;
 
+	  //@linxchen
+	  vnet_buffer2 (b0)->int_metadata.queue_size = pkts_swapped;
+	  vnet_buffer2 (b1)->int_metadata.queue_size = pkts_swapped+1;
+
 	  pkts_swapped += 2;
 
 	  if (PREDICT_FALSE ((node->flags & VLIB_NODE_FLAG_TRACE)))
@@ -196,6 +203,7 @@ VLIB_NODE_FN (sample_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
 				    sizeof (t->new_dst_mac));
 		  //@linxchen
 		  t->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
+		  t->queue = vnet_buffer2 (b0)->int_metadata.queue_size;
 		}
 	      if (b1->flags & VLIB_BUFFER_IS_TRACED)
 		{
@@ -209,6 +217,7 @@ VLIB_NODE_FN (sample_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
 				    sizeof (t->new_dst_mac));
 		  //@linxchen
 		  t->timestamp = vnet_buffer2 (b1)->int_metadata.ingress_timestamp;
+		  t->queue = vnet_buffer2 (b1)->int_metadata.queue_size;
 		}
 	    }
 
@@ -263,6 +272,9 @@ VLIB_NODE_FN (sample_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
 	  /* Send pkt back out the RX interface */
 	  vnet_buffer (b0)->sw_if_index[VLIB_TX] = sw_if_index0;
 
+	  //@linxchen
+	  vnet_buffer2 (b0)->int_metadata.queue_size = pkts_swapped;
+
 	  if (PREDICT_FALSE ((node->flags & VLIB_NODE_FLAG_TRACE)
 			     && (b0->flags & VLIB_BUFFER_IS_TRACED)))
 	    {
@@ -275,6 +287,7 @@ VLIB_NODE_FN (sample_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
 				sizeof (t->new_dst_mac));
 	      //@linxchen
 		  t->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
+		  t->queue = vnet_buffer2 (b0)->int_metadata.queue_size;
 	    }
 
 	  pkts_swapped += 1;
