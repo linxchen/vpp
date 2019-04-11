@@ -89,6 +89,11 @@ VLIB_NODE_FN (ip4_options_node) (vlib_main_t * vm,
 	      break;
 	    }
 
+	  //@linxchen
+	  /*
+	   * options[0] is the first 8 bit after ip4 header.
+	   */
+
 	  if (b->flags & VLIB_BUFFER_IS_TRACED)
 	    {
 	      ip4_options_trace_t *t =
