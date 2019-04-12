@@ -9,14 +9,14 @@ typedef struct
 	u8 nop;
 	/* Option code (ssr is 137) */
 	u8 code;
-	/* Total length of option header */
+	/* Total length of option header in one byte unit, including the first 4 bytes */
 	u8 length;
-	/* Pointer is next available slot */
+	/* Pointer is next available slot in one byte unit, the pointer to the first address is 4 */
 	u8 pointer;
 
 	/* The DIP elts */
 	ip4_address_t dip_array[0];
-} __attribute__ ((packed)) ip4_option_sr_header_t;
+} __attribute__ ((packed)) ip4_inwt_ip4option_sr_header_t;
 
 typedef struct
 {
@@ -27,23 +27,23 @@ typedef struct
 
 	u16 flags;
 	u8 metadata_length_of_per_hop;
-	u8 remaining_number_of_hops;
+	u8 pointer_to_hops;
 
 	u16 instruction_bitmap;
 	u16 metadata_header_reserved;
 
-	u32 metadata_stack[0];
-} __attribute__ ((packed)) ip4_int_header_t;
+	u8 metadata_stack[0];
+} __attribute__ ((packed)) ip4_inwt_int_header_t;
 
-typedef struct
-{
-	/* ip4 option header (strict source routing) */
-	ip4_option_sr_header_t option_sr_header;
+// typedef struct
+// {
+// 	/* ip4 option header (strict source routing) */
+// 	ip4_option_sr_header_t option_sr_header;
 
-	/* int shim header, int metadata header and metadata stack */
-	ip4_int_header_t int_header;
+// 	/* INT shim header, INT metadata header and metadata stack */
+// 	ip4_int_header_t int_header;
 	
-} __attribute__ ((packed)) ip4_inwt_header_t;
+// } __attribute__ ((packed)) ip4_inwt_header_t;
 
 #endif /* included_vnet_inwt_packet_h */
 

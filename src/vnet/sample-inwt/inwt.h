@@ -6,6 +6,13 @@
 
 typedef struct
 {
+	u8 *rewrite_sr;
+	u8 *rewrite_int;
+} ip4_inwt_policy_t;
+
+typedef struct
+{
+	ip4_inwt_policy_t *inwt_policies;
 	
 	/* convenience */
 	vlib_main_t *vlib_main;
