@@ -526,6 +526,20 @@ list(APPEND VNET_HEADERS
   osi/osi.h
 )
 
+
+##############################################################################
+# Layer 3/4 protocol: INWT  by linxchen
+##############################################################################
+list(APPEND VNET_SOURCES
+  sample-inwt/inwt.c
+  sample-inwt/inwt_header_rewrite.c
+)
+
+list(APPEND VNET_HEADERS
+  sample-inwt/inwt.h
+  sample-inwt/inwt_packet.h
+)
+
 ##############################################################################
 # Layer 4 protocol: tcp
 ##############################################################################

@@ -129,7 +129,7 @@ inwt_header_rewrite_command_fn (vlib_main_t * vm, unformat_input_t * input,
 		else if(unformat(input, "next %U", unformat_ip4_address, &next_address))
 		{
 			vec_add2(segments, this_seg, 1);
-			clib_memcpy_fast(this_seg->data, next_address->data, sizeof(*this_seg));
+			clib_memcpy_fast(this_seg->data, next_address.data, sizeof(*this_seg));
 		}
 		else if(unformat(input, "maxhop %u", &max_hop));
 		else if(unformat(input, "insmap 0x%x", &ins_map));
@@ -170,8 +170,35 @@ VLIB_CLI_COMMAND (inwt_header_rewrite_command, static) = {
 /* *INDENT-ON* */
 
 /*************************** INWT rewrite graph node ****************************/
+/**
+ * @brief Graph node for applying an INWT policy into a packet.
+ *        Generate INWT probe packet and insert INWT header.
+ */
+static uword
+inwt_probe_packet_generation(vlib_main_t * vm, vlib_node_runtime_t * node,
+			vlib_frame_t * from_frame)
+{
 
+	return from_frame->n_vectors;
+}
 
+/* *INDENT-OFF* */
+VLIB_REGISTER_NODE (inwt_probe_packet_generation_node) = {
+  .function = inwt_probe_packet_generation,
+  .name = "inwt-probe-packet-generation",
+  .vector_size = sizeof (u32),
+  // .format_trace = format_inwt_probe_packet_trace,
+  .type = VLIB_NODE_TYPE_INTERNAL,
+//   .n_errors = INWT_PROBE_PACKET_N_ERROR,
+//   .error_strings = inwt_probe_packet_error_strings,
+//   .n_next_nodes = INWT_PROBE_PACKET_N_NEXT,
+//   .next_nodes = {
+// #define _(s,n) [INWT_PROBE_PACKET_NEXT_##s] = n,
+//     foreach_inwt_probe_packet_next
+// #undef _
+//   },
+};
+/* *INDENT-ON* */
 
 /********************* INWT Header Rewrite initialization ***********************/
 /**
@@ -180,7 +207,7 @@ VLIB_CLI_COMMAND (inwt_header_rewrite_command, static) = {
 clib_error_t *
 inwt_header_rewrite_init(vlib_main_t * vm)
 {
-	ip4_inwt_main_t *iim = &ip4_inwt_main;
+	// ip4_inwt_main_t *iim = &ip4_inwt_main;
 
 	/* Registrations */
 
