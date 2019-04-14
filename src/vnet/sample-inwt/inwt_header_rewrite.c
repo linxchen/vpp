@@ -189,14 +189,14 @@ VLIB_REGISTER_NODE (inwt_probe_packet_generation_node) = {
   .vector_size = sizeof (u32),
   // .format_trace = format_inwt_probe_packet_trace,
   .type = VLIB_NODE_TYPE_INTERNAL,
-//   .n_errors = INWT_PROBE_PACKET_N_ERROR,
-//   .error_strings = inwt_probe_packet_error_strings,
-//   .n_next_nodes = INWT_PROBE_PACKET_N_NEXT,
-//   .next_nodes = {
-// #define _(s,n) [INWT_PROBE_PACKET_NEXT_##s] = n,
-//     foreach_inwt_probe_packet_next
-// #undef _
-//   },
+  .n_errors = INWT_PROBE_PACKET_N_ERROR,
+  .error_strings = inwt_probe_packet_error_strings,
+  .n_next_nodes = INWT_PROBE_PACKET_N_NEXT,
+  .next_nodes = {
+#define _(s,n) [INWT_PROBE_PACKET_NEXT_##s] = n,
+    foreach_inwt_probe_packet_next
+#undef _
+  },
 };
 /* *INDENT-ON* */
 
@@ -207,7 +207,7 @@ VLIB_REGISTER_NODE (inwt_probe_packet_generation_node) = {
 clib_error_t *
 inwt_header_rewrite_init(vlib_main_t * vm)
 {
-	// ip4_inwt_main_t *iim = &ip4_inwt_main;
+	ip4_inwt_main_t *iim = &ip4_inwt_main;
 
 	/* Registrations */
 
