@@ -8,6 +8,42 @@
 #include <vppinfra/error.h>
 #include <vppinfra/elog.h>
 
+/* Graph arcs */
+#define foreach_inwt_probe_packet_next     \
+// _(IP6_LOOKUP, "ip6-lookup")         \
+_(ERROR, "error-drop")
+
+typedef enum
+{
+#define _(s,n) INWT_PROBE_PACKET_NEXT_##s,
+  foreach_inwt_probe_packet_next
+#undef _
+    INWT_PROBE_PACKET_N_NEXT,
+} inwt_probe_packet_next_t;
+
+/* INWT rewrite errors */
+#define foreach_inwt_probe_packet_error                     \
+_(INTERNAL_ERROR, "Segment Routing undefined error")        \
+_(BSID_ZERO, "BSID with SL = 0")                            \
+_(COUNTER_TOTAL, "SR steered IPv6 packets")                 \
+_(COUNTER_ENCAP, "SR: Encaps packets")                      \
+_(COUNTER_INSERT, "SR: SRH inserted packets")               \
+_(COUNTER_BSID, "SR: BindingSID steered packets")
+
+typedef enum
+{
+#define _(sym,str) INWT_PROBE_PACKET_ERROR_##sym,
+  foreach_inwt_probe_packet_error
+#undef _
+    INWT_PROBE_PACKET_N_ERROR,
+} inwt_probe_packet_error_t;
+
+static char *inwt_probe_packet_error_strings[] = {
+#define _(sym,string) string,
+  foreach_inwt_probe_packet_error
+#undef _
+};
+
 /*********************** SR rewrite string computation ************************/
 /**
  * @brief SR rewrite string computation for SR header insertion
