@@ -3,6 +3,8 @@
 
 #include <vnet/vnet.h>
 #include <vnet/sample-inwt/inwt_packet.h>
+#include <vnet/ethernet/packet.h>
+#include <vnet/ip/ip4_packet.h>
 
 typedef struct
 {
@@ -12,7 +14,17 @@ typedef struct
 
 typedef struct
 {
+	ethernet_header_t l2_header;
+	ip4_header_t l3_header;
+} __attribute__ ((packed)) ip4_inwt_template_header_t;
+
+typedef struct
+{
 	ip4_inwt_policy_t *inwt_policies;
+
+
+	/** Template used to generate INWT probe packets. */
+	vlib_packet_template_t inwt_probe_packet_template;
 	
 	/* convenience */
 	vlib_main_t *vlib_main;
@@ -20,6 +32,8 @@ typedef struct
 } ip4_inwt_main_t;
 
 extern ip4_inwt_main_t ip4_inwt_main;
+
+extern vlib_node_registration_t inwt_probe_packet_generation_node;
 
 #endif /* included_vnet_ip4_inwt_h */
 
