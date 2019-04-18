@@ -5,6 +5,7 @@
 #include <vnet/sample-inwt/inwt_packet.h>
 #include <vnet/ethernet/packet.h>
 #include <vnet/ip/ip4_packet.h>
+#include <vlib/log.h>
 
 typedef struct
 {
@@ -26,9 +27,12 @@ typedef struct
 	/** Template used to generate INWT probe packets. */
 	vlib_packet_template_t inwt_probe_packet_template;
 	
-	/* convenience */
+	/** convenience */
 	vlib_main_t *vlib_main;
 	vnet_main_t *vnet_main;
+
+	/** log class */
+	vlib_log_class_t log_class;
 } ip4_inwt_main_t;
 
 extern ip4_inwt_main_t ip4_inwt_main;

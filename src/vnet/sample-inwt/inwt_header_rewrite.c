@@ -4,9 +4,12 @@
 #include <vnet/sample-inwt/inwt_packet.h>
 #include <vnet/ip/ip.h>
 #include <vnet/ip/ip4_packet.h>
+#include <vnet/udp/udp.h>
 
+#include <vppinfra/vec_bootstrap.h>
 #include <vppinfra/error.h>
-#include <vppinfra/elog.h>
+
+#include <vlib/log.h>
 
 /* Graph arcs */
 #define foreach_inwt_probe_packet_next     \
@@ -147,7 +150,7 @@ inwt_header_rewrite_command_fn (vlib_main_t * vm, unformat_input_t * input,
 	      vlib_cli_command_t * cmd)
 {
 	int rv = -1;
-	char is_add = 0;
+	int is_add = 0;
 	u8 max_hop = (u8) ~ 0;
 	u16 ins_map = (u16) ~ 0;
 	ip4_address_t next_address;
@@ -155,7 +158,7 @@ inwt_header_rewrite_command_fn (vlib_main_t * vm, unformat_input_t * input,
 
 	while(unformat_check_input(input) != UNFORMAT_END_OF_INPUT)
 	{
-		if(!is_add && unformat(input, "add"))
+		if(is_add==0 && unformat(input, "add"))
 			is_add = 1;
 		else if(unformat(input, "next %U", unformat_ip4_address, &next_address))
 		{
@@ -168,9 +171,9 @@ inwt_header_rewrite_command_fn (vlib_main_t * vm, unformat_input_t * input,
 			break;
 	}
 
-	if(!is_add)
+	if(is_add == 0)
 		return clib_error_return(0, "Incorrect CLI");
-	if(is_add)
+	if(is_add == 1)
 	{
 		if(vec_len(segments) == 0)
 			return clib_error_return(0, "No Source Routing Path specified");
@@ -243,6 +246,8 @@ inwt_probe_packet_generation(vlib_main_t * vm, vlib_node_runtime_t * node,
 
 	next_index = INWT_PROBE_PACKET_NEXT_DROP;
 
+	// vlib_log_warn(iim->log_class, "enter into inwt probe packet generation node");
+
 	while(n_left_from > 0)
 	{
 		u32 n_left_to_next;
@@ -266,6 +271,7 @@ inwt_probe_packet_generation(vlib_main_t * vm, vlib_node_runtime_t * node,
 			n_left_to_next -= 1;
 
 			b0 = vlib_get_buffer(vm, bi0);
+			vlib_buffer_advance(b0, -(word)(sizeof(ethernet_header_t)+sizeof(ip4_header_t)+sizeof(udp_header_t)));
 
 			pool_foreach(inwt_policy, iim->inwt_policies,
 						{vec_add1(vec_policies, inwt_policy); } );
@@ -280,7 +286,6 @@ inwt_probe_packet_generation(vlib_main_t * vm, vlib_node_runtime_t * node,
 				inwt_policy = vec_policies[i];
 				probe_numbers += 1;
 
-				vlib_buffer_advance(b0, -sizeof(ethernet_header_t)-sizeof(ip4_header_t)-sizeof(udp_header_t));
 				h = inwt_packet_template_get_packet(vm,
 								&iim->inwt_probe_packet_template,
 								b0,
@@ -290,6 +295,11 @@ inwt_probe_packet_generation(vlib_main_t * vm, vlib_node_runtime_t * node,
 					b0->error = node->errors[INWT_PROBE_PACKET_ERROR_NO_BUFFERS];
 					continue;
 				}
+
+				// ethernet_header_t *log_l2 = &(h->l2_header);
+				// vlib_log_warn(iim->log_class, "ip4_inwt_gen_template src_mac addr: %U",
+				// 			format_mac_address, log_l2->src_address);
+				
 				c0 = vlib_get_buffer(vm, ci0);
 				vnet_buffer(c0)->sw_if_index[VLIB_RX] = vnet_buffer(b0)->sw_if_index[VLIB_RX];
 
@@ -322,6 +332,7 @@ inwt_probe_packet_generation(vlib_main_t * vm, vlib_node_runtime_t * node,
 				rewrite ip4 header(length, protocol and checksum)
 				modify sr and int headers
 				advance pointer to mac_header
+				copy trace flag
 				 */
 				u8 old_protocol = 0;
 				u16 new_l0 = 0;
@@ -337,15 +348,18 @@ inwt_probe_packet_generation(vlib_main_t * vm, vlib_node_runtime_t * node,
 
 				int0->next_protocol = old_protocol;
 
-				advance = vec_len(inwt_policy->rewrite_int) + vec_len(inwt_policy->rewrite_sr) + sizeof(ip4_header_t) + sizeof(ethernet_header_t);
-				vlib_buffer_advance(c0, -advance);
+				advance = vec_len(inwt_policy->rewrite_int) + vec_len(inwt_policy->rewrite_sr);
+				vlib_buffer_advance(c0, -(word)advance);
+
+				vlib_buffer_copy_trace_flag(vm, b0, ci0);
+				VLIB_BUFFER_TRACE_TRAJECTORY_INIT (c0);
+
 				vlib_set_next_frame_buffer (vm, node,
 				      INWT_PROBE_PACKET_NEXT_ETHERNET_INPUT, ci0);
 			}
-
-			vlib_put_next_frame (vm, node, next_index, n_left_to_next);
 		}
 
+		vlib_put_next_frame (vm, node, next_index, n_left_to_next);
 	}
 
 	return from_frame->n_vectors;
@@ -379,6 +393,8 @@ inwt_header_rewrite_init(vlib_main_t * vm)
 	ip4_inwt_main_t *iim = &ip4_inwt_main;
 
 	/* Registrations */
+	udp_register_dst_port (vm, UDP_DST_PORT_inwt,
+			 inwt_probe_packet_generation_node.index, /* is_ip4 */ 1);
 	
 	ip4_inwt_template_header_t h;
 	clib_memset (&h, 0, sizeof (h));
@@ -387,6 +403,8 @@ inwt_header_rewrite_init(vlib_main_t * vm)
 			    sizeof (h),
 			    /* alloc chunk size */ 8,
 			    "inwt probe template");
+
+	iim->log_class = vlib_log_register_class ("inwt", 0);
 
 	return 0;
 }
