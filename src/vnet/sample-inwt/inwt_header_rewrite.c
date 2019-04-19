@@ -340,8 +340,18 @@ inwt_probe_packet_generation(vlib_main_t * vm, vlib_node_runtime_t * node,
 				u32 advance = 0;
 
 				ip0 = &(template_h0->l3_header);
-				new_l0 = clib_host_to_net_u16(0x14) + vec_len(inwt_policy->rewrite_sr) + vec_len(inwt_policy->rewrite_int);
+				new_l0 = vec_len(inwt_policy->rewrite_sr) + vec_len(inwt_policy->rewrite_int) + 0x14;
+
+				// vlib_log_warn(iim->log_class, "ip4_inwt_gen_template sr length: %d",
+				//  			vec_len(inwt_policy->rewrite_sr));
+				// vlib_log_warn(iim->log_class, "ip4_inwt_gen_template int length: %d",
+				//  			vec_len(inwt_policy->rewrite_int));
+
 				ip0->length = clib_host_to_net_u16(new_l0);
+
+				// vlib_log_warn(iim->log_class, "ip4_inwt_gen_template ip length: %d",
+				//  			clib_net_to_host_u16 (ip0->length));
+
 				old_protocol = ip0->protocol;
 				ip0->protocol = IP_PROTOCOL_IP4_INWT;
 				ip0->checksum = ip4_header_checksum(ip0);
