@@ -71,6 +71,13 @@ ip4_input_set_next (u32 sw_if_index, vlib_buffer_t * b, int arc_enabled)
 
   ip4_header_t *ip = vlib_buffer_get_current (b);
 
+  /* linxchen */
+  if (PREDICT_FALSE (ip->protocol == IP_PROTOCOL_IP4_INWT))
+    {
+      next = IP4_INPUT_NEXT_INWT_SR_FORWARDING;
+      return next;
+    }
+
   if (PREDICT_FALSE (ip4_address_is_multicast (&ip->dst_address)))
     {
       next = IP4_INPUT_NEXT_LOOKUP_MULTICAST;
@@ -330,6 +337,7 @@ VLIB_REGISTER_NODE (ip4_input_node) = {
     [IP4_INPUT_NEXT_LOOKUP_MULTICAST] = "ip4-mfib-forward-lookup",
     [IP4_INPUT_NEXT_ICMP_ERROR] = "ip4-icmp-error",
     [IP4_INPUT_NEXT_REASSEMBLY] = "ip4-reassembly",
+    [IP4_INPUT_NEXT_INWT_SR_FORWARDING] = "inwt-sr-forwarding", /* linxchen */
   },
 
   .format_buffer = format_ip4_header,

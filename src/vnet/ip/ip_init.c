@@ -140,6 +140,10 @@ do {						\
   if ((error = vlib_call_init_function (vm, dns_init)))
     return error;
 
+  /* linxchen */
+  if ((error = vlib_call_init_function (vm, inwt_init)))
+    return error;
+
   return error;
 }
 

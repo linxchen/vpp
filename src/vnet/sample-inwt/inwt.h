@@ -38,6 +38,7 @@ typedef struct
 extern ip4_inwt_main_t ip4_inwt_main;
 
 extern vlib_node_registration_t inwt_probe_packet_generation_node;
+extern vlib_node_registration_t inwt_sr_forwarding_node;
 
 #endif /* included_vnet_ip4_inwt_h */
 

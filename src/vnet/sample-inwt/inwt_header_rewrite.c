@@ -4,7 +4,6 @@
 #include <vnet/sample-inwt/inwt_packet.h>
 #include <vnet/ip/ip.h>
 #include <vnet/ip/ip4_packet.h>
-#include <vnet/udp/udp.h>
 
 #include <vppinfra/vec_bootstrap.h>
 #include <vppinfra/error.h>
@@ -177,6 +176,7 @@ inwt_header_rewrite_command_fn (vlib_main_t * vm, unformat_input_t * input,
 	{
 		if(vec_len(segments) == 0)
 			return clib_error_return(0, "No Source Routing Path specified");
+
 		rv = inwt_header_add(segments, max_hop, ins_map);
 		vec_free(segments);
 	}
@@ -251,7 +251,6 @@ inwt_probe_packet_generation(vlib_main_t * vm, vlib_node_runtime_t * node,
 	while(n_left_from > 0)
 	{
 		u32 n_left_to_next;
-
 		vlib_get_next_frame (vm, node, next_index, to_next, n_left_to_next);
 
 		while(n_left_from > 0 && n_left_to_next > 0)
@@ -392,34 +391,6 @@ VLIB_REGISTER_NODE (inwt_probe_packet_generation_node) = {
   },
 };
 /* *INDENT-ON* */
-
-/********************* INWT Header Rewrite initialization ***********************/
-/**
- * @brief INWT Header Rewrite Initialization
- */
-clib_error_t *
-inwt_header_rewrite_init(vlib_main_t * vm)
-{
-	ip4_inwt_main_t *iim = &ip4_inwt_main;
-
-	/* Registrations */
-	udp_register_dst_port (vm, UDP_DST_PORT_inwt,
-			 inwt_probe_packet_generation_node.index, /* is_ip4 */ 1);
-	
-	ip4_inwt_template_header_t h;
-	clib_memset (&h, 0, sizeof (h));
-	vlib_packet_template_init (vm, &iim->inwt_probe_packet_template,
-			    /* data */  &h,
-			    sizeof (h),
-			    /* alloc chunk size */ 8,
-			    "inwt probe template");
-
-	iim->log_class = vlib_log_register_class ("inwt", 0);
-
-	return 0;
-}
-
-VLIB_INIT_FUNCTION (inwt_header_rewrite_init);
 
 /*
 * fd.io coding-style-patch-verification: ON

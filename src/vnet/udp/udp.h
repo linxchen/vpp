@@ -62,8 +62,7 @@ _ (4790, VXLAN_GPE)				\
 _ (6633, vpath_3)				\
 _ (6081, geneve)				\
 _ (53053, dns_reply)    \
-_ (55555, inwt)
-/* linxchen */
+_ (55555, inwt)    /* linxchen */
 
 
 #define foreach_udp6_dst_port                   \
