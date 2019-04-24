@@ -983,13 +983,6 @@ typedef struct
 
   /* Packet data, possibly *after* rewrite. */
   u8 packet_data[64 - 1 * sizeof (u32)];
-
-  //@linxchen
-  u64 timestamp;
-  u64 egr_timestamp;
-  u32 queue;
-  u32 delay;
-  u8 switch_id[6];
 }
 ip4_forward_next_trace_t;
 
@@ -1039,17 +1032,6 @@ format_ip4_rewrite_trace (u8 * s, va_list * args)
 	      format_white_space, indent,
 	      format_ip_adjacency_packet_data,
 	      t->dpo_index, t->packet_data, sizeof (t->packet_data));
-  //@linxchen
-  s = format (s, "\n  ingress_time %lu",
-            t->timestamp);
-  s = format (s, "  egress_time %lu",
-            t->egr_timestamp);
-  s = format (s, "  queue %d",
-            t->queue);
-  s = format (s, "  switch mac %U",
-        format_mac_address, t->switch_id);
-  s = format (s, "  delay %d",
-        t->delay);
   return s;
 }
 
@@ -1096,13 +1078,6 @@ ip4_forward_next_trace (vlib_main_t * vm,
 	  clib_memcpy_fast (t0->packet_data,
 			    vlib_buffer_get_current (b0),
 			    sizeof (t0->packet_data));
-    //@linxchen
-    t0->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
-    t0->egr_timestamp = vnet_buffer2 (b0)->int_metadata.egress_timestamp;
-    t0->queue = vnet_buffer2 (b0)->int_metadata.queue_size;
-    t0->delay = vnet_buffer2 (b0)->int_metadata.latency;
-    clib_memcpy_fast (t0->switch_id, vnet_buffer2 (b0)->int_metadata.switch_addr,
-            sizeof (t0->switch_id));
 	}
       if (b1->flags & VLIB_BUFFER_IS_TRACED)
 	{
@@ -1116,13 +1091,6 @@ ip4_forward_next_trace (vlib_main_t * vm,
 		     vnet_buffer (b1)->sw_if_index[VLIB_RX]);
 	  clib_memcpy_fast (t1->packet_data, vlib_buffer_get_current (b1),
 			    sizeof (t1->packet_data));
-    //@linxchen
-    t1->timestamp = vnet_buffer2 (b1)->int_metadata.ingress_timestamp;
-    t1->egr_timestamp = vnet_buffer2 (b1)->int_metadata.egress_timestamp;
-    t1->queue = vnet_buffer2 (b1)->int_metadata.queue_size;
-    t1->delay = vnet_buffer2 (b1)->int_metadata.latency;
-    clib_memcpy_fast (t1->switch_id, vnet_buffer2 (b1)->int_metadata.switch_addr,
-            sizeof (t1->switch_id));
 	}
       from += 2;
       n_left -= 2;
@@ -1150,13 +1118,6 @@ ip4_forward_next_trace (vlib_main_t * vm,
 		     vnet_buffer (b0)->sw_if_index[VLIB_RX]);
 	  clib_memcpy_fast (t0->packet_data, vlib_buffer_get_current (b0),
 			    sizeof (t0->packet_data));
-    //@linxchen
-    t0->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
-    t0->egr_timestamp = vnet_buffer2 (b0)->int_metadata.egress_timestamp;
-    t0->queue = vnet_buffer2 (b0)->int_metadata.queue_size;
-    t0->delay = vnet_buffer2 (b0)->int_metadata.latency;
-    clib_memcpy_fast (t0->switch_id, vnet_buffer2 (b0)->int_metadata.switch_addr,
-            sizeof (t0->switch_id));
 	}
       from += 1;
       n_left -= 1;
@@ -2228,9 +2189,6 @@ ip4_rewrite_inline (vlib_main_t * vm,
     vlib_node_get_runtime (vm, ip4_input_node.index);
 
   n_left_from = frame->n_vectors;
-  
-  //@linxchen
-  u32 n_total_from = frame->n_vectors;
 
   u32 thread_index = vm->thread_index;
 
@@ -2358,14 +2316,6 @@ ip4_rewrite_inline (vlib_main_t * vm,
       vnet_rewrite_two_headers (adj0[0], adj1[0],
 				ip0, ip1, sizeof (ethernet_header_t));
 
-      //@linxchen
-      vnet_buffer2 (b[0])->int_metadata.queue_size = n_total_from - n_left_from;
-      vnet_buffer2 (b[0])->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);
-      vnet_buffer2 (b[0])->int_metadata.latency = vnet_buffer2 (b[0])->int_metadata.egress_timestamp - vnet_buffer2 (b[0])->int_metadata.ingress_timestamp;
-      vnet_buffer2 (b[1])->int_metadata.queue_size = n_total_from - n_left_from + 1;
-      vnet_buffer2 (b[1])->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);
-      vnet_buffer2 (b[1])->int_metadata.latency = vnet_buffer2 (b[1])->int_metadata.egress_timestamp - vnet_buffer2 (b[1])->int_metadata.ingress_timestamp;
-
       /*
        * Bump the per-adjacency counters
        */
@@ -2468,11 +2418,6 @@ ip4_rewrite_inline (vlib_main_t * vm,
 
       /* Guess we are only writing on simple Ethernet header. */
       vnet_rewrite_one_header (adj0[0], ip0, sizeof (ethernet_header_t));
-
-      //@linxchen
-      vnet_buffer2 (b[0])->int_metadata.queue_size = n_total_from - n_left_from;
-      vnet_buffer2 (b[0])->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);
-      vnet_buffer2 (b[0])->int_metadata.latency = vnet_buffer2 (b[0])->int_metadata.egress_timestamp - vnet_buffer2 (b[0])->int_metadata.ingress_timestamp;
 
       if (do_counters)
 	vlib_increment_combined_counter

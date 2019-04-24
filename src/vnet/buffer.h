@@ -382,14 +382,14 @@ typedef struct
       u64 pad[1];
       u64 pg_replay_timestamp;
     };
-    //@linxchen
+    /* linxchen */
     struct
     {
       u32 queue_size;
+      u32 latency;
       u64 ingress_timestamp;
       u64 egress_timestamp;
-      u32 latency;
-      u8 switch_addr[6];   //use mac address
+      u8 switch_addr[6];   //mac address
     } int_metadata;
     u32 unused[10];
   };

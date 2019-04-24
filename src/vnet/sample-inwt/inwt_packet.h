@@ -35,16 +35,6 @@ typedef struct
 	u8 metadata_stack[0];
 } __attribute__ ((packed)) ip4_inwt_int_header_t;
 
-// typedef struct
-// {
-// 	/* ip4 option header (strict source routing) */
-// 	ip4_option_sr_header_t option_sr_header;
-
-// 	/* INT shim header, INT metadata header and metadata stack */
-// 	ip4_int_header_t int_header;
-	
-// } __attribute__ ((packed)) ip4_inwt_header_t;
-
 #endif /* included_vnet_inwt_packet_h */
 
 /*

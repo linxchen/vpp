@@ -534,7 +534,6 @@ list(APPEND VNET_SOURCES
   sample-inwt/inwt.c
   sample-inwt/inwt_header_rewrite.c
   sample-inwt/inwt_packet_processing.c
-  sample-inwt/inwt_int_record.c
 )
 
 list(APPEND VNET_HEADERS
