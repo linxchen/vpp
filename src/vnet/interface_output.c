@@ -244,8 +244,17 @@ calc_checksums (vlib_main_t * vm, vlib_buffer_t * b)
 }
 
 /* linxchen -->start */
+#define foreach_mac_address_offset              \
+_(0)                                            \
+_(1)                                            \
+_(2)                                            \
+_(3)                                            \
+_(4)                                            \
+_(5)
+
 static_always_inline void
-inwt_int_record (vlib_main_t * vm, vlib_buffer_t * b0, ip4_header_t * ip0, u32 n_queue)
+inwt_int_record (vlib_main_t * vm, vlib_buffer_t * b0,
+                 ethernet_header_t * e0, ip4_header_t * ip0, u32 n_queue)
 {
 	ip4_inwt_ip4option_sr_header_t *sr0;
 	ip4_inwt_int_header_t *int0;
@@ -255,6 +264,9 @@ inwt_int_record (vlib_main_t * vm, vlib_buffer_t * b0, ip4_header_t * ip0, u32 n
 	pktmetadata = (u8 *) (((void *) int0) + int0->pointer_to_hops);
 
 	//record egress metadata
+	#define _(a) vnet_buffer2 (b0)->int_metadata.switch_addr[a] = e0->src_address[a];
+	    foreach_mac_address_offset;
+	#undef _
 	vnet_buffer2 (b0)->int_metadata.queue_size = n_queue;
 	vnet_buffer2 (b0)->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);
 	vnet_buffer2 (b0)->int_metadata.latency = vnet_buffer2 (b0)->int_metadata.egress_timestamp - vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
@@ -496,7 +508,7 @@ vnet_interface_output_node_inline (vlib_main_t * vm,
 	  	ip0 = (ip4_header_t *) (e0 + 1);
 	  	if(ip0->protocol == IP_PROTOCOL_IP4_INWT)
 	  	{
-	  		inwt_int_record(vm, b0, ip0, n_queue);
+	  		inwt_int_record(vm, b0, e0, ip0, n_queue);
 	  	}
 	  }
 
@@ -508,7 +520,7 @@ vnet_interface_output_node_inline (vlib_main_t * vm,
 	  	ip1 = (ip4_header_t *) (e1 + 1);
 	  	if(ip1->protocol == IP_PROTOCOL_IP4_INWT)
 	  	{
-	  		inwt_int_record(vm, b1, ip1, n_queue);
+	  		inwt_int_record(vm, b1, e1, ip1, n_queue);
 	  	}
 	  }
 
@@ -520,7 +532,7 @@ vnet_interface_output_node_inline (vlib_main_t * vm,
 	  	ip2 = (ip4_header_t *) (e2 + 1);
 	  	if(ip2->protocol == IP_PROTOCOL_IP4_INWT)
 	  	{
-	  		inwt_int_record(vm, b2, ip2, n_queue);
+	  		inwt_int_record(vm, b2, e2, ip2, n_queue);
 	  	}
 	  }
 
@@ -532,7 +544,7 @@ vnet_interface_output_node_inline (vlib_main_t * vm,
 	  	ip3 = (ip4_header_t *) (e3 + 1);
 	  	if(ip3->protocol == IP_PROTOCOL_IP4_INWT)
 	  	{
-	  		inwt_int_record(vm, b3, ip3, n_queue);
+	  		inwt_int_record(vm, b3, e3, ip3, n_queue);
 	  	}
 	  }
 	  /* linxchen -->end */
@@ -591,7 +603,7 @@ vnet_interface_output_node_inline (vlib_main_t * vm,
 	  	ip0 = (ip4_header_t *) (e0 + 1);
 	  	if(ip0->protocol == IP_PROTOCOL_IP4_INWT)
 	  	{
-	  		inwt_int_record(vm, b0, ip0, n_queue);
+	  		inwt_int_record(vm, b0, e0, ip0, n_queue);
 	  	}
 	  }
 	  /* linxchen -->end */
