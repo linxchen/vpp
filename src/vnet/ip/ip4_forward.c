@@ -1011,6 +1011,7 @@ format_ip4_lookup_trace (u8 * s, va_list * args)
 
   s = format (s, "fib %d dpo-idx %d flow hash: 0x%08x",
 	      t->fib_index, t->dpo_index, t->flow_hash);
+
   s = format (s, "\n%U%U",
 	      format_white_space, indent,
 	      format_ip4_header, t->packet_data, sizeof (t->packet_data));

@@ -777,10 +777,6 @@ ethernet_input_inline (vlib_main_t * vm,
 	  b0 = vlib_get_buffer (vm, bi0);
 	  b1 = vlib_get_buffer (vm, bi1);
 
-    /* linxchen */
-    vnet_buffer2 (b0)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
-    vnet_buffer2 (b1)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
-
 	  error0 = error1 = ETHERNET_ERROR_NONE;
 	  e0 = vlib_buffer_get_current (b0);
 	  type0 = clib_net_to_host_u16 (e0->type);
@@ -1021,9 +1017,6 @@ ethernet_input_inline (vlib_main_t * vm,
 
 	  b0 = vlib_get_buffer (vm, bi0);
 
-    /* linxchen */
-    vnet_buffer2 (b0)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
-
 	  error0 = ETHERNET_ERROR_NONE;
 	  e0 = vlib_buffer_get_current (b0);
 	  type0 = clib_net_to_host_u16 (e0->type);
@@ -1241,6 +1234,21 @@ VLIB_NODE_FN (ethernet_input_node) (vlib_main_t * vm,
   ethernet_main_t *em = &ethernet_main;
   u32 *from = vlib_frame_vector_args (frame);
   u32 n_packets = frame->n_vectors;
+
+  //linxchen--start
+  u32 *from_inwt, n_left_inwt;
+  from_inwt = from;
+  n_left_inwt = n_packets;
+  while (n_left_inwt)
+    {
+      vlib_buffer_t *b0_inwt = vlib_get_buffer (vm, from_inwt[0]);
+
+      vnet_buffer2 (b0_inwt)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
+
+      from_inwt += 1;
+      n_left_inwt -= 1;
+    }
+  //linxchen--end
 
   ethernet_input_trace (vm, node, frame);
 
