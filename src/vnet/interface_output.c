@@ -268,19 +268,19 @@ inwt_int_record (vlib_main_t * vm, vlib_buffer_t * b0,
 	    foreach_mac_address_offset;
 	#undef _
 	vnet_buffer2 (b0)->int_metadata.queue_size = n_queue;
-	vnet_buffer2 (b0)->int_metadata.egress_timestamp = (u64)(vlib_time_now(vm)*1000000);
+	vnet_buffer2 (b0)->int_metadata.egress_timestamp = vlib_time_now(vm);
 	vnet_buffer2 (b0)->int_metadata.latency = vnet_buffer2 (b0)->int_metadata.egress_timestamp - vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
 
 	//write metadata into packet
 	u32 *p32;
-	u64 *p64;
+	f64 *p64;
 	p32 = &(vnet_buffer2 (b0)->int_metadata.queue_size);
 	opaque2 = (u8 *) p32;
 	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.queue_size));
 	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.queue_size);
 
-	p32 = &(vnet_buffer2 (b0)->int_metadata.latency);
-	opaque2 = (u8 *) p32;
+	p64 = &(vnet_buffer2 (b0)->int_metadata.latency);
+	opaque2 = (u8 *) p64;
 	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.latency));
 	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.latency);
 

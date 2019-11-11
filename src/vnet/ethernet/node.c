@@ -1243,7 +1243,7 @@ VLIB_NODE_FN (ethernet_input_node) (vlib_main_t * vm,
     {
       vlib_buffer_t *b0_inwt = vlib_get_buffer (vm, from_inwt[0]);
 
-      vnet_buffer2 (b0_inwt)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
+      vnet_buffer2 (b0_inwt)->int_metadata.ingress_timestamp = vlib_time_now(vm);
 
       from_inwt += 1;
       n_left_inwt -= 1;

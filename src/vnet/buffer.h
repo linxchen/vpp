@@ -385,10 +385,10 @@ typedef struct
     /* linxchen */
     struct
     {
+      f64 latency;
+      f64 ingress_timestamp;
+      f64 egress_timestamp;
       u32 queue_size;
-      u32 latency;
-      u64 ingress_timestamp;
-      u64 egress_timestamp;
       u8 switch_addr[6];   //mac address
     } int_metadata;
     u32 unused[10];
