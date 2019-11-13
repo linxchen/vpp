@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DPDK_PKTMBUF_HEADROOM        ?= 128
+DPDK_PKTMBUF_HEADROOM        ?= 256
 DPDK_CACHE_LINE_SIZE         ?= 64
 DPDK_DOWNLOAD_DIR            ?= $(DL_CACHE_DIR)
 DPDK_DEBUG                   ?= n

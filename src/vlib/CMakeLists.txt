@@ -14,7 +14,7 @@
 ##############################################################################
 # Generate vlib/config.h
 ##############################################################################
-set(PRE_DATA_SIZE 128 CACHE STRING "Buffer headroom size.")
+set(PRE_DATA_SIZE 256 CACHE STRING "Buffer headroom size.")
 configure_file(
   ${CMAKE_SOURCE_DIR}/vlib/config.h.in
   ${CMAKE_BINARY_DIR}/vlib/config.h
