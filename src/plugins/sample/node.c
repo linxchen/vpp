@@ -25,7 +25,7 @@ typedef struct
   u32 sw_if_index;
   u8 new_src_mac[6];
   u8 new_dst_mac[6];
-  u64 timestamp;   //@linxchen
+  u32 timestamp;   //@linxchen
   u32 queue;
 } sample_trace_t;
 
@@ -44,7 +44,7 @@ format_sample_trace (u8 * s, va_list * args)
 	      format_mac_address, t->new_src_mac,
 	      format_mac_address, t->new_dst_mac);
   //@linxchen
-  s = format (s, "  my_timestamp %lu",
+  s = format (s, "  my_timestamp %u",
 	      t->timestamp);
   s = format (s, "  my_que %d",
 	      t->queue);
@@ -152,8 +152,8 @@ VLIB_NODE_FN (sample_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
 	  en1 = vlib_buffer_get_current (b1);
 
 	  //@linxchen
-	  vnet_buffer2 (b0)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
-	  vnet_buffer2 (b1)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
+	  vnet_buffer2 (b0)->int_metadata.ingress_timestamp_s = (u32)(vlib_time_now(vm)*1000000);
+	  vnet_buffer2 (b1)->int_metadata.ingress_timestamp_s = (u32)(vlib_time_now(vm)*1000000);
 
 	  /* This is not the fastest way to swap src + dst mac addresses */
 #define _(a) tmp0[a] = en0->src_address[a];
@@ -202,7 +202,7 @@ VLIB_NODE_FN (sample_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
 		  clib_memcpy_fast (t->new_dst_mac, en0->dst_address,
 				    sizeof (t->new_dst_mac));
 		  //@linxchen
-		  t->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
+		  t->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp_s;
 		  t->queue = vnet_buffer2 (b0)->int_metadata.queue_size;
 		}
 	      if (b1->flags & VLIB_BUFFER_IS_TRACED)
@@ -216,7 +216,7 @@ VLIB_NODE_FN (sample_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
 		  clib_memcpy_fast (t->new_dst_mac, en1->dst_address,
 				    sizeof (t->new_dst_mac));
 		  //@linxchen
-		  t->timestamp = vnet_buffer2 (b1)->int_metadata.ingress_timestamp;
+		  t->timestamp = vnet_buffer2 (b1)->int_metadata.ingress_timestamp_s;
 		  t->queue = vnet_buffer2 (b1)->int_metadata.queue_size;
 		}
 	    }
@@ -254,7 +254,7 @@ VLIB_NODE_FN (sample_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
 	  en0 = vlib_buffer_get_current (b0);
 
 	  //@linxchen
-	  vnet_buffer2 (b0)->int_metadata.ingress_timestamp = (u64)(vlib_time_now(vm)*1000000);
+	  vnet_buffer2 (b0)->int_metadata.ingress_timestamp_s = (u32)(vlib_time_now(vm)*1000000);
 
 	  /* This is not the fastest way to swap src + dst mac addresses */
 #define _(a) tmp0[a] = en0->src_address[a];
@@ -286,7 +286,7 @@ VLIB_NODE_FN (sample_node) (vlib_main_t * vm, vlib_node_runtime_t * node,
 	      clib_memcpy_fast (t->new_dst_mac, en0->dst_address,
 				sizeof (t->new_dst_mac));
 	      //@linxchen
-		  t->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
+		  t->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp_s;
 		  t->queue = vnet_buffer2 (b0)->int_metadata.queue_size;
 	    }
 

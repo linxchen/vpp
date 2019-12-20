@@ -982,7 +982,7 @@ typedef struct
   u32 fib_index;
 
   //linxchen
-  f64 in_timestamp;
+  //u64 s_latency;
 
   /* Packet data, possibly *after* rewrite. */
   u8 packet_data[64 - 1 * sizeof (u32)];
@@ -1016,7 +1016,7 @@ format_ip4_lookup_trace (u8 * s, va_list * args)
 	      t->fib_index, t->dpo_index, t->flow_hash);
 
   //linxchen
-  s = format (s, "  ingress_timestamp %.6f", t->in_timestamp);
+  //s = format (s, "  switch_latency %llu", t->s_latency);
 
   s = format (s, "\n%U%U",
 	      format_white_space, indent,
@@ -1083,7 +1083,7 @@ ip4_forward_next_trace (vlib_main_t * vm,
 		     vnet_buffer (b0)->sw_if_index[VLIB_RX]);
 
     //linxchen
-    t0->in_timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
+    //t0->s_latency = vnet_buffer2 (b0)->int_metadata.latency;
 
 	  clib_memcpy_fast (t0->packet_data,
 			    vlib_buffer_get_current (b0),
@@ -1101,7 +1101,7 @@ ip4_forward_next_trace (vlib_main_t * vm,
 		     vnet_buffer (b1)->sw_if_index[VLIB_RX]);
 
     //linxchen
-    t1->in_timestamp = vnet_buffer2 (b1)->int_metadata.ingress_timestamp;
+    //t1->s_latency = vnet_buffer2 (b1)->int_metadata.latency;
 
 	  clib_memcpy_fast (t1->packet_data, vlib_buffer_get_current (b1),
 			    sizeof (t1->packet_data));
@@ -1132,7 +1132,7 @@ ip4_forward_next_trace (vlib_main_t * vm,
 		     vnet_buffer (b0)->sw_if_index[VLIB_RX]);
 
     //linxchen
-    t0->in_timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
+    //t0->s_latency = vnet_buffer2 (b0)->int_metadata.latency;
     
 	  clib_memcpy_fast (t0->packet_data, vlib_buffer_get_current (b0),
 			    sizeof (t0->packet_data));

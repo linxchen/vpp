@@ -44,6 +44,7 @@
 #include <vnet/devices/pipe/pipe.h>
 #include <vppinfra/sparse_vec.h>
 #include <vnet/l2/l2_bvi.h>
+#include <sys/time.h>   //linxchen
 
 
 #define foreach_ethernet_input_next		\
@@ -1243,7 +1244,11 @@ VLIB_NODE_FN (ethernet_input_node) (vlib_main_t * vm,
     {
       vlib_buffer_t *b0_inwt = vlib_get_buffer (vm, from_inwt[0]);
 
-      vnet_buffer2 (b0_inwt)->int_metadata.ingress_timestamp = vlib_time_now(vm);
+      //vnet_buffer2 (b0_inwt)->int_metadata.ingress_timestamp = vlib_time_now(vm);
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      vnet_buffer2 (b0_inwt)->int_metadata.ingress_timestamp_s = tv.tv_sec;
+      vnet_buffer2 (b0_inwt)->int_metadata.ingress_timestamp_us = tv.tv_usec;
 
       from_inwt += 1;
       n_left_inwt -= 1;

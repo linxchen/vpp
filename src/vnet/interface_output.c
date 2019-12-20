@@ -47,18 +47,12 @@
 #include <vnet/ethernet/packet.h>
 #include <vnet/ip/ip4_packet.h>
 #include <vnet/sample-inwt/inwt_packet.h>
+#include <sys/time.h>
 
 typedef struct
 {
   u32 sw_if_index;
   u8 data[128 - sizeof (u32)];
-  
-  // /* linxchen */
-  // u64 ing_timestamp;
-  // u64 eg_timestamp;
-  // u32 queue_length;
-  // u32 delay;
-  // u8 switch_address[6];
 }
 interface_output_trace_t;
 
@@ -97,18 +91,6 @@ format_vnet_interface_output_trace (u8 * s, va_list * va)
 		      node->format_buffer ? node->
 		      format_buffer : format_hex_bytes, t->data,
 		      sizeof (t->data));
-	  //@linxchen
-/*  	  s = format (s, "\n  ingress_time %lu",
-	      	  t->timestamp);
-  	  s = format (s, "  egress_time %lu",
-	      	  t->egr_timestamp);
-  	  s = format (s, "  queue %d",
-	      	  t->queue);
-  	  s = format (s, "  switch mac %U",
-	      format_mac_address, t->switch_id);
-  	  s = format (s, "  delay %d",
-	      t->delay);
-*/
 	}
     }
   return s;
@@ -146,13 +128,6 @@ vnet_interface_output_trace (vlib_main_t * vm,
 	  t0->sw_if_index = vnet_buffer (b0)->sw_if_index[VLIB_TX];
 	  clib_memcpy_fast (t0->data, vlib_buffer_get_current (b0),
 			    sizeof (t0->data));
-	  //@linxchen
-/*	  t0->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
-	  t0->egr_timestamp = vnet_buffer2 (b0)->int_metadata.egress_timestamp;
-	  t0->queue = vnet_buffer2 (b0)->int_metadata.queue_size;
-	  t0->delay = vnet_buffer2 (b0)->int_metadata.latency;
-	  clib_memcpy_fast (t0->switch_id, vnet_buffer2 (b0)->int_metadata.switch_addr,
-				    sizeof (t0->switch_id));*/
 	}
       if (b1->flags & VLIB_BUFFER_IS_TRACED)
 	{
@@ -160,13 +135,6 @@ vnet_interface_output_trace (vlib_main_t * vm,
 	  t1->sw_if_index = vnet_buffer (b1)->sw_if_index[VLIB_TX];
 	  clib_memcpy_fast (t1->data, vlib_buffer_get_current (b1),
 			    sizeof (t1->data));
-	  //@linxchen
-/*	  t1->timestamp = vnet_buffer2 (b1)->int_metadata.ingress_timestamp;
-	  t1->egr_timestamp = vnet_buffer2 (b1)->int_metadata.egress_timestamp;
-	  t1->queue = vnet_buffer2 (b1)->int_metadata.queue_size;
-	  t1->delay = vnet_buffer2 (b1)->int_metadata.latency;
-	  clib_memcpy_fast (t1->switch_id, vnet_buffer2 (b1)->int_metadata.switch_addr,
-				    sizeof (t1->switch_id));*/
 	}
       from += 2;
       n_left -= 2;
@@ -188,13 +156,6 @@ vnet_interface_output_trace (vlib_main_t * vm,
 	  t0->sw_if_index = vnet_buffer (b0)->sw_if_index[VLIB_TX];
 	  clib_memcpy_fast (t0->data, vlib_buffer_get_current (b0),
 			    sizeof (t0->data));
-	  //@linxchen
-/*	  t0->timestamp = vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
-	  t0->egr_timestamp = vnet_buffer2 (b0)->int_metadata.egress_timestamp;
-	  t0->queue = vnet_buffer2 (b0)->int_metadata.queue_size;
-	  t0->delay = vnet_buffer2 (b0)->int_metadata.latency;
-	  clib_memcpy_fast (t0->switch_id, vnet_buffer2 (b0)->int_metadata.switch_addr,
-				    sizeof (t0->switch_id));*/
 	}
       from += 1;
       n_left -= 1;
@@ -268,31 +229,52 @@ inwt_int_record (vlib_main_t * vm, vlib_buffer_t * b0,
 	    foreach_mac_address_offset;
 	#undef _
 	vnet_buffer2 (b0)->int_metadata.queue_size = n_queue;
-	vnet_buffer2 (b0)->int_metadata.egress_timestamp = vlib_time_now(vm);
-	vnet_buffer2 (b0)->int_metadata.latency = vnet_buffer2 (b0)->int_metadata.egress_timestamp - vnet_buffer2 (b0)->int_metadata.ingress_timestamp;
+	//vnet_buffer2 (b0)->int_metadata.egress_timestamp = vlib_time_now(vm);
+	struct timeval tv;
+    gettimeofday(&tv, NULL);
+    vnet_buffer2 (b0)->int_metadata.egress_timestamp_s = tv.tv_sec;
+    vnet_buffer2 (b0)->int_metadata.egress_timestamp_us = tv.tv_usec;
+    //u64 end_us = (u64) tv.tv_usec + ((u64) tv.tv_sec) * 1000000;
+    //u64 begin_us = (u64) (vnet_buffer2 (b0)->int_metadata.ingress_timestamp_us) + ((u64) vnet_buffer2 (b0)->int_metadata.ingress_timestamp_s) * 1000000;
+	//vnet_buffer2 (b0)->int_metadata.latency = end_us - begin_us;
 
 	//write metadata into packet
 	u32 *p32;
-	f64 *p64;
+	//u64 *p64;
 	p32 = &(vnet_buffer2 (b0)->int_metadata.queue_size);
 	opaque2 = (u8 *) p32;
 	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.queue_size));
 	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.queue_size);
 
-	p64 = &(vnet_buffer2 (b0)->int_metadata.latency);
-	opaque2 = (u8 *) p64;
-	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.latency));
-	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.latency);
+	//p64 = &(vnet_buffer2 (b0)->int_metadata.latency);
+	//opaque2 = (u8 *) p64;
+	//clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.latency));
+	//pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.latency);
 
-	p64 = &(vnet_buffer2 (b0)->int_metadata.ingress_timestamp);
-	opaque2 = (u8 *) p64;
-	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.ingress_timestamp));
-	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.ingress_timestamp);
+	p32 = &(vnet_buffer2 (b0)->int_metadata.ingress_timestamp_s);
+	opaque2 = (u8 *) p32;
+	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.ingress_timestamp_s));
+	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.ingress_timestamp_s);
 
-	p64 = &(vnet_buffer2 (b0)->int_metadata.egress_timestamp);
-	opaque2 = (u8 *) p64;
-	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.egress_timestamp));
-	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.egress_timestamp);
+	p32 = &(vnet_buffer2 (b0)->int_metadata.ingress_timestamp_us);
+	opaque2 = (u8 *) p32;
+	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.ingress_timestamp_us));
+	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.ingress_timestamp_us);
+
+	p32 = &(vnet_buffer2 (b0)->int_metadata.egress_timestamp_s);
+	opaque2 = (u8 *) p32;
+	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.egress_timestamp_s));
+	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.egress_timestamp_s);
+
+	p32 = &(vnet_buffer2 (b0)->int_metadata.egress_timestamp_us);
+	opaque2 = (u8 *) p32;
+	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.egress_timestamp_us));
+	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.egress_timestamp_us);
+
+	// p64 = &(vnet_buffer2 (b0)->int_metadata.egress_timestamp);
+	// opaque2 = (u8 *) p64;
+	// clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.egress_timestamp));
+	// pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.egress_timestamp);
 
 	opaque2 = vnet_buffer2 (b0)->int_metadata.switch_addr;
 	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.switch_addr));
