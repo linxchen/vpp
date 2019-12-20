@@ -231,11 +231,11 @@ inwt_int_record (vlib_main_t * vm, vlib_buffer_t * b0,
 	vnet_buffer2 (b0)->int_metadata.queue_size = n_queue;
 	//vnet_buffer2 (b0)->int_metadata.egress_timestamp = vlib_time_now(vm);
 	struct timeval tv;
-    gettimeofday(&tv, NULL);
-    vnet_buffer2 (b0)->int_metadata.egress_timestamp_s = tv.tv_sec;
-    vnet_buffer2 (b0)->int_metadata.egress_timestamp_us = tv.tv_usec;
-    //u64 end_us = (u64) tv.tv_usec + ((u64) tv.tv_sec) * 1000000;
-    //u64 begin_us = (u64) (vnet_buffer2 (b0)->int_metadata.ingress_timestamp_us) + ((u64) vnet_buffer2 (b0)->int_metadata.ingress_timestamp_s) * 1000000;
+	gettimeofday(&tv, NULL);
+	vnet_buffer2 (b0)->int_metadata.egress_timestamp_s = tv.tv_sec;
+	vnet_buffer2 (b0)->int_metadata.egress_timestamp_us = tv.tv_usec;
+	//u64 end_us = (u64) tv.tv_usec + ((u64) tv.tv_sec) * 1000000;
+	//u64 begin_us = (u64) (vnet_buffer2 (b0)->int_metadata.ingress_timestamp_us) + ((u64) vnet_buffer2 (b0)->int_metadata.ingress_timestamp_s) * 1000000;
 	//vnet_buffer2 (b0)->int_metadata.latency = end_us - begin_us;
 
 	//write metadata into packet
