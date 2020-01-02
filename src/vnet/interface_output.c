@@ -228,7 +228,7 @@ inwt_int_record (vlib_main_t * vm, vlib_buffer_t * b0,
 	#define _(a) vnet_buffer2 (b0)->int_metadata.switch_addr[a] = e0->src_address[a];
 	    foreach_mac_address_offset;
 	#undef _
-	vnet_buffer2 (b0)->int_metadata.queue_size = n_queue;
+	//vnet_buffer2 (b0)->int_metadata.queue_size = n_queue;
 	//vnet_buffer2 (b0)->int_metadata.egress_timestamp = vlib_time_now(vm);
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
@@ -241,10 +241,10 @@ inwt_int_record (vlib_main_t * vm, vlib_buffer_t * b0,
 	//write metadata into packet
 	u32 *p32;
 	//u64 *p64;
-	p32 = &(vnet_buffer2 (b0)->int_metadata.queue_size);
-	opaque2 = (u8 *) p32;
-	clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.queue_size));
-	pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.queue_size);
+	//p32 = &(vnet_buffer2 (b0)->int_metadata.queue_size);
+	//opaque2 = (u8 *) p32;
+	//clib_memcpy_fast(pktmetadata, opaque2, sizeof(vnet_buffer2 (b0)->int_metadata.queue_size));
+	//pktmetadata += sizeof(vnet_buffer2 (b0)->int_metadata.queue_size);
 
 	//p64 = &(vnet_buffer2 (b0)->int_metadata.latency);
 	//opaque2 = (u8 *) p64;

@@ -385,7 +385,7 @@ typedef struct
     /* linxchen */
     struct
     {
-      u32 queue_size;
+      //u32 queue_size;
       u32 ingress_timestamp_s;
       u32 ingress_timestamp_us;
       u32 egress_timestamp_s;
