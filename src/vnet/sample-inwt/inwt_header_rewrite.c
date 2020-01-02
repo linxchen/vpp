@@ -86,9 +86,9 @@ compute_rewrite_int(u8 max_hop, u16 ins_map)
 	u8 *p_metadata_stack;
 
 	header_length += sizeof(ip4_inwt_int_header_t);  //12 byte
-	u8 length_metadata_stack = max_hop * 28;
+	u8 length_metadata_stack = max_hop * 24;
 	// u8 length_metadata_stack = find_length_via_ins_map(ins_map) * max_hop;
-	header_length += length_metadata_stack;  //Currently, length of int_metadata per hop is 28 byte
+	header_length += length_metadata_stack;  //Currently, length of int_metadata per hop is 24 byte
 
 	vec_validate(result, header_length-1);
 
@@ -98,7 +98,7 @@ compute_rewrite_int(u8 max_hop, u16 ins_map)
 	inwt_inth->length = header_length;
 	inwt_inth->next_protocol = 0;
 	inwt_inth->flags = 0x1000;
-	inwt_inth->metadata_length_of_per_hop = 0x1c;  //28 byte
+	inwt_inth->metadata_length_of_per_hop = 0x18;  //24 byte
 	inwt_inth->pointer_to_hops = 0x0c;  // =12
 	inwt_inth->instruction_bitmap = ins_map;
 	inwt_inth->metadata_header_reserved = 0;
